@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#BSUB -q q32ncores
+#BSUB -o progdyn.o-%J
+#BSUB -e progdyn.e-%J
+#BSUB -J progdyn-B
+#BSUB -n 32
+#BSUB -R "span[ptile=32]"
+
+./progdynstarterHP tmp
