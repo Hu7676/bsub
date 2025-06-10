@@ -1,0 +1,66 @@
+#!/bin/bash
+
+#BSUB -q q32ncores
+#BSUB -o G16.o-%J
+#BSUB -e G16.e-%J
+#BSUB -J G16_JING
+#BSUB -n 32
+#BSUB -R "span[ptile=32]"
+
+#Please give the name of the INPUT_FILE, such as test(.com)
+INPUT_FILE=JING
+CHK_FILE=
+
+
+#--- LSF ---
+echo job runs at the following node:
+echo $LSB_HOSTS 
+NP=$(echo $LSB_HOSTS | awk '{print NF}')
+NNODE=$(echo $LSB_HOSTS | sed -e "s/ /\n/g" | uniq - | wc -l)
+if [ $NNODE -gt 1 ]; then
+bkill $LSB_JOBID
+exit
+fi
+echo ""
+echo Number of processor: $NP
+echo ""
+
+#--- G16A03 ---
+module add g16/A03
+module add nbo/7
+
+#----> Define the working directory at compute nodes <----
+export STARTDIR=$LS_SUBCWD
+export RUNDIR=/tmp/$LSB_JOBID.tmpdir
+GAUSS_RUNDIR=$RUNDIR
+GAUSS_SCRDIR=$RUNDIR/scr
+mkdir -p $GAUSS_SCRDIR
+export GAUSS_RUNDIR GAUSS_SCRDIR
+ulimit -s unlimited
+ulimit -c 0
+
+#----> enter the working directory <----
+cd $RUNDIR
+echo This job begins at: `date`
+
+#To improve the computational efficiency, copy the input files to the compute nodes at first.
+cp $STARTDIR/${INPUT_FILE%.com}.*  ${GAUSS_RUNDIR}
+
+sed -i '/proc/d' ${INPUT_FILE%.com}.com
+sed -i  "1i%nprocs=$NP" ${INPUT_FILE%.com}.com
+sed -i  "/--[lL]/a%nprocs=$NP" ${INPUT_FILE%.com}.com
+
+if [ -n ${CHK_FILE} ]; then
+cp $STARTDIR/${CHK_FILE%.chk}.chk  ${GAUSS_RUNDIR}
+fi
+
+#----> Job begins <----
+g16  ${INPUT_FILE%.com}.com
+
+#---> copy the output files to starting directory <---
+rm -rf ${GAUSS_SCRDIR}
+cp $RUNDIR/*[^com]  $STARTDIR
+rm -rf $RUNDIR
+
+echo This job ends at:'  ' `date`
+
