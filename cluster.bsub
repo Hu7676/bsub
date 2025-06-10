@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#BSUB -q q16cores 
+#BSUB -o abc.o-%J
+#BSUB -e abc.e-%J
+#BSUB -J Cluster
+#BSUB -n 16
+#BSUB -R "span[ptile=16]"
+
+isomer b2s3_n1.inp > b2s3_n1.out
