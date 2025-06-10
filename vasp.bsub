@@ -1,0 +1,56 @@
+#!/bin/bash
+
+#BSUB -q q32ncores
+#BSUB -J vasp
+#BSUB -o VASP.o-%J
+#BSUB -e VASP.e-%J
+#BSUB -n 32
+#BSUB -R "span[ptile=32]"
+ 
+# std, ncl or gam
+VERSION=std
+
+echo ------------------------
+echo Job begins at `date`
+echo ------------------------
+
+echo job runs at the following node:
+echo $LSB_HOSTS 
+NP=$(echo $LSB_HOSTS | awk '{print NF}')
+echo $LSB_HOSTS | sed 's/ /\n/g' > mpd.hosts
+echo ""
+echo Number of processor: $NP
+echo ""
+ 
+#---> Environment Setting <----
+module add vasp/6.3.2
+
+export OMP_NUM_THREADS=1
+ 
+ulimit -s unlimited
+ulimit -c 0
+
+# Run VASP
+nodes=$(sort -u mpd.hosts | wc -l)
+if [ "$nodes" -eq 1 ]; then
+  export STARTDIR=$LS_SUBCWD
+  export RUNDIR=/tmp/$LSB_JOBID.tmpdir
+  cp $STARTDIR/*  ${RUNDIR}/
+  cd ${RUNDIR}
+#  start=$(date +%s)
+# mpiexec.hydra /share/apps/vasp/6.3.2/bin/vasp_$VERSION
+  mpiexec.hydra -bootstrap ssh /share/apps/vasp/6.3.2/bin/vasp_$VERSION
+#  end=$(date +%s)
+# echo processors and walltime: $NP  $(( end -start ))
+  cp $RUNDIR/*  $STARTDIR
+else
+  #mpiexec.hydra -n $NP /share/apps/vasp/6.3.2/bin/vasp_$VERSION
+  mpiexec.hydra -bootstrap ssh /share/apps/vasp/6.3.2/bin/vasp_$VERSION
+fi
+
+
+echo ------------------------
+echo Job terminates at `date`
+echo ------------------------
+
+
